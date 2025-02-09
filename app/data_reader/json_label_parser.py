@@ -1,5 +1,7 @@
 import msgspec
 
+from app.lmdb_impl import ImageData
+
 """
 example = {
     "info": {
@@ -52,8 +54,8 @@ class Info(msgspec.Struct):
 
 class Image(msgspec.Struct):
     id: str
-    width: int
-    height: int
+    # width: int
+    # height: int
     file_name: str
 
 
@@ -64,25 +66,25 @@ class Attribute(msgspec.Struct):
 
 
 class Annotation(msgspec.Struct):
-    attributes: Attribute
+    # attributes: Attribute
     id: str
     image_id: str
     text: str
 
 
 class PrintedDataInfo(msgspec.Struct):
-    info: Info
+    # info: Info
     images: list[Image]
     annotations: list[Annotation]
 
 
 class JsonLabelParser:
-    def __init__(self, label_json_path):
-        self.label_json_path = label_json_path
+    def __init__(self, json_label_path):
+        self.json_label_path = json_label_path
         self.decoder = msgspec.json.Decoder(PrintedDataInfo)
 
-    def parse_json(self):
-        with open(self.label_json_path, "r", encoding="utf-8") as f:
+    def parse(self):
+        with open(self.json_label_path, "r", encoding="utf-8") as f:
             label_data = self.decoder.decode(f.read())
 
         image_id_set = {image.id for image in label_data.images}
@@ -107,28 +109,35 @@ class JsonLabelParser:
             f"총 어노테이션 개수: {len(label_data.annotations)} → 매칭된 어노테이션 개수: {len(matched_annotations)}"
         )
 
-        return PrintedDataInfo(
-            info=label_data.info, images=matched_images, annotations=matched_annotations
-        )
+        return PrintedDataInfo(images=matched_images, annotations=matched_annotations)
+
+    @staticmethod
+    def convert_to_formatted_dto(data: PrintedDataInfo) -> list[ImageData]:
+        data_len = min(len(data.images), len(data.annotations))
+
+        result = []
+        for i in range(data_len):
+            result.append(
+                ImageData(path=data.images[i].file_name, label=data.annotations[i].text)
+            )
+
+        return result
 
 
-# 예제 실행
 if __name__ == "__main__":
     json_path = r"D:\ml\한국어글자체이미지\02.인쇄체_230721_add\printed_data_info.json"
 
     reader = JsonLabelParser(json_path)
-    parsed_data = reader.parse_json()
+    parsed_data = reader.parse()
 
     print(f"데이터 길이: {len(parsed_data.images)}")
 
     if parsed_data.annotations:
         first_annotation = parsed_data.annotations[0]
-        print(
-            f"첫 번째 이미지 이름: {first_annotation.image_id}, 속성: {first_annotation.attributes}, 텍스트: {first_annotation.text}"
-        )
-
-    if parsed_data.images:
         first_image = parsed_data.images[0]
         print(
-            f"첫 번째 이미지 파일: {first_image.file_name}, 크기: {first_image.width}x{first_image.height}"
+            f"첫 번째 이미지 이름: {first_image.file_name}, 텍스트: {first_annotation.text}"
         )
+
+    converted_data = JsonLabelParser.convert_to_formatted_dto(parsed_data)
+    print(converted_data[0])

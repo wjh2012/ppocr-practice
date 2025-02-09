@@ -2,3 +2,5 @@ lmdb
 pillow
 tqdm
 msgspec
+numpy
+opencv-python
