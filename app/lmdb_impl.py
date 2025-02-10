@@ -13,7 +13,7 @@ class LMDBRepository:
     def __init__(self, lmdb_path: str):
         self.lmdb_path = lmdb_path
 
-    def create_lmdb(self, map_size, datas: list[ImageData], image_root):
+    def create_lmdb(self, map_size: int, datas: list[ImageData], image_root: str):
         try:
             env = lmdb.open(self.lmdb_path, map_size=map_size)
             with env.begin(write=True) as txn:
@@ -24,11 +24,13 @@ class LMDBRepository:
                         with open(image_path, "rb") as f:
                             image_data = f.read()
                     except Exception as e:
+                        print("이미지 읽기 에러")
                         continue
 
+                    # 인덱스는 1부터 시작해야 PaddleOCR의 LMDBDataSet과 일치함
                     valid_samples += 1
-                    image_key = f"image-{valid_samples:09d}".encode("utf-8")
-                    label_key = f"label-{valid_samples:09d}".encode("utf-8")
+                    image_key = "image-%09d".encode() % valid_samples
+                    label_key = "label-%09d".encode() % valid_samples
 
                     txn.put(image_key, image_data)
                     txn.put(label_key, data.label.encode("utf-8"))
@@ -46,9 +48,8 @@ class LMDBRepository:
             env = lmdb.open(self.lmdb_path, readonly=True, lock=False)
             labels = []
             with env.begin() as txn:
-                # 1부터 top_n까지 "label-%09d" 형식의 key로 레이블 읽기
                 for i in range(1, top_n + 1):
-                    label_key = f"label-{i:09d}".encode("utf-8")
+                    label_key = "label-%09d".encode() % i
                     label_value = txn.get(label_key)
                     if label_value is None:
                         break
@@ -61,7 +62,7 @@ class LMDBRepository:
 
 
 def write_test():
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\lmdb_train"
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_train"
     test_image_root_path = r"C:\Users\WONJANGHO\Desktop\test"
     test_data = [
         ImageData(path="1.jpg", label="테스트라벨1입니다"),
@@ -85,7 +86,7 @@ def write_test():
 
 
 def read_test(top_n=5):
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\lmdb_train"
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_train"
     repo = LMDBRepository(output_lmdb_path)
 
     read_data = repo.read_lmdb(top_n=top_n)

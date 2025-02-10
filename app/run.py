@@ -36,7 +36,7 @@ def run_with_txt_label():
     print(formatted_data[0].path)
     print(formatted_data[0].label)
 
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\lmdb_mcir_train"
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_eval"
     image_root_path = r"C:\Users\WONJANGHO\Desktop\out"
     map_size = 1 * 1024 * 1024 * 1024
 
