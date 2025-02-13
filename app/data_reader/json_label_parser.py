@@ -1,6 +1,6 @@
 import msgspec
 
-from app.lmdb_impl import ImageData
+from app.lmdb.lmdb_impl import ImageData
 
 """
 example = {

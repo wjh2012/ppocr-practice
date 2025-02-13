@@ -1,6 +1,6 @@
 from app.data_reader.json_label_parser import JsonLabelParser
 from app.data_reader.txt_label_parser import TxtLabelParser
-from app.lmdb_impl import LMDBRepository
+from app.lmdb_dataset.lmdb_impl import LMDBRepository
 
 
 def run_with_json_label():
@@ -27,8 +27,7 @@ def run_with_json_label():
     repo.read_lmdb(top_n=10)
 
 
-def run_with_txt_label():
-    txt_path = r"C:\Users\WONJANGHO\Desktop\out\labels.txt"
+def run_with_txt_label(txt_path, output_lmdb_path, image_root_path):
     reader = TxtLabelParser(txt_path)
     formatted_data = reader.parse()
 
@@ -36,8 +35,6 @@ def run_with_txt_label():
     print(formatted_data[0].path)
     print(formatted_data[0].label)
 
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_eval"
-    image_root_path = r"C:\Users\WONJANGHO\Desktop\out"
     map_size = 1 * 1024 * 1024 * 1024
 
     repo = LMDBRepository(output_lmdb_path)
@@ -46,8 +43,11 @@ def run_with_txt_label():
         datas=formatted_data,
         image_root=image_root_path,
     )
-    repo.read_lmdb(top_n=10)
 
 
 if __name__ == "__main__":
-    run_with_txt_label()
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_train"
+    image_root_path = r"C:\Users\WONJANGHO\Desktop\train"
+    txt_path = r"C:\Users\WONJANGHO\Desktop\train\labels.txt"
+
+    run_with_txt_label(txt_path, output_lmdb_path, image_root_path)

@@ -1,4 +1,9 @@
-from app.lmdb_impl import ImageData
+import msgspec
+
+
+class ImageData(msgspec.Struct):
+    path: str
+    label: str
 
 
 class TxtLabelParser:
@@ -33,7 +38,7 @@ class TxtLabelParser:
 
 
 if __name__ == "__main__":
-    txt_path = r"C:\Users\WONJANGHO\Desktop\out\labels.txt"
+    txt_path = r"C:\Users\WONJANGHO\Desktop\train\labels.txt"
 
     reader = TxtLabelParser(txt_path)
     parsed_data = reader.parse()
