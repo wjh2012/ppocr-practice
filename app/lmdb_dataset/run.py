@@ -46,8 +46,8 @@ def run_with_txt_label(txt_path, output_lmdb_path, image_root_path):
 
 
 if __name__ == "__main__":
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_train"
-    image_root_path = r"C:\Users\WONJANGHO\Desktop\train"
-    txt_path = r"C:\Users\WONJANGHO\Desktop\train\labels.txt"
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\AI\micr_eval"
+    image_root_path = r"C:\Users\WONJANGHO\Desktop\AI\eval"
+    txt_path = r"C:\Users\WONJANGHO\Desktop\AI\eval\labels.txt"
 
     run_with_txt_label(txt_path, output_lmdb_path, image_root_path)

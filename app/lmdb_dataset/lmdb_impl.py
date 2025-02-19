@@ -15,54 +15,60 @@ class LMDBRepository:
     def __init__(self, lmdb_path: str):
         self.lmdb_path = lmdb_path
 
-    def create_lmdb(self, map_size: int, datas: list[ImageData], image_root: str):
+    def create_lmdb(
+        self,
+        map_size: int,
+        datas: list[ImageData],
+        image_root: str,
+        batch_size: int = 100,
+    ):
+        """LMDB 데이터셋을 생성하는 함수 (배치 처리 최적화)"""
         try:
             env = lmdb.open(self.lmdb_path, map_size=map_size)
             with env.begin(write=True) as txn:
+                cache = {}  # 배치 저장을 위한 캐시
                 valid_samples = 0  # 실제 저장된(유효한) 샘플 개수
+
                 for data in tqdm(datas, desc="LMDB 데이터셋 생성중"):
                     image_path = os.path.join(image_root, data.path)
                     try:
                         with open(image_path, "rb") as f:
                             image_data = f.read()
                     except Exception as e:
-                        print("이미지 읽기 에러")
+                        print(f"이미지 읽기 에러 ({image_path}): {e}")
                         continue
 
-                    # 인덱스는 1부터 시작해야 PaddleOCR의 LMDBDataSet과 일치함
                     valid_samples += 1
                     image_key = "image-%09d".encode() % valid_samples
                     label_key = "label-%09d".encode() % valid_samples
 
-                    txn.put(image_key, image_data)
-                    txn.put(label_key, data.label.encode("utf-8"))
+                    cache[image_key] = image_data
+                    cache[label_key] = data.label.encode("utf-8")
+
+                    # 일정 개수마다 배치 저장
+                    if valid_samples % batch_size == 0:
+                        self._write_cache(txn, cache)
+                        cache = {}  # 캐시 초기화
+
+                # 남은 데이터 저장
+                if cache:
+                    self._write_cache(txn, cache)
 
                 txn.put(
                     "num-samples".encode("utf-8"), str(valid_samples).encode("utf-8")
                 )
+
             env.close()
-            print("✅ LMDB 데이터셋 생성 완료!")
+            print(f"✅ LMDB 데이터셋 생성 완료! (총 {valid_samples}개 샘플)")
         except Exception as e:
             print(f"데이터 삽입 중 오류 발생: {e}")
 
-    def read_lmdb(self, top_n: int):
-        try:
-            env = lmdb.open(self.lmdb_path, readonly=True, lock=False)
-            labels = []
-            with env.begin() as txn:
-                for i in range(1, top_n + 1):
-                    label_key = "label-%09d".encode() % i
-                    label_value = txn.get(label_key)
-                    if label_value is None:
-                        break
-                    labels.append(label_value.decode("utf-8"))
-            env.close()
-            return labels
-        except Exception as e:
-            print(f"LMDB 읽기 중 오류 발생: {e}")
-            return []
+    def _write_cache(self, txn, cache):
+        for k, v in cache.items():
+            txn.put(k, v)
 
 
+# 테스트 함수
 def write_test():
     output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\micr_train"
     test_image_root_path = r"C:\Users\WONJANGHO\Desktop\test"
@@ -84,6 +90,7 @@ def write_test():
         map_size=10 * 1024 * 1024 * 1024,  # 10GB
         datas=test_data,
         image_root=test_image_root_path,
+        batch_size=1000,  # 배치 크기 지정
     )
 
 

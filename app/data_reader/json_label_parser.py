@@ -1,6 +1,10 @@
 import msgspec
 
-from app.lmdb.lmdb_impl import ImageData
+
+class ImageData(msgspec.Struct):
+    path: str
+    label: str
+
 
 """
 example = {
