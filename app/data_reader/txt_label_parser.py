@@ -21,7 +21,7 @@ class TxtLabelParser:
                     if not line:
                         continue
 
-                    parts = line.split(" ")
+                    parts = line.split("\t")
                     if len(parts) < 2:
                         print(f"잘못된 형식의 라인 무시: {line}")
                         continue

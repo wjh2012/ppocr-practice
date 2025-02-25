@@ -202,5 +202,5 @@ def check_first_image_channel(lmdb_path=r"C:\Users\WONJANGHO\Desktop\micr_train"
 
 
 if __name__ == "__main__":
-    test_path = r"C:\Users\WONJANGHO\Downloads\ST_spe\ST_spe"
-    check_first_image_channel(lmdb_path=test_path)
+    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\AI\micr_eval"
+    check_lmdb_keys(lmdb_path=output_lmdb_path, index=40)
