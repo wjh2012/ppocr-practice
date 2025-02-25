@@ -4,3 +4,7 @@ tqdm
 msgspec
 numpy
 opencv-python
+
+paddleocr_convert
+paddlepaddle
+rapidocr_onnxruntime
