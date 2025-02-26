@@ -1,0 +1,5 @@
+*.jpg
+*.info
+*.pdmodel
+*.pdiparams
+*.onnx
