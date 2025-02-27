@@ -5,7 +5,11 @@ from app.lmdb_dataset.lmdb_impl import LMDBRepository
 
 
 def run_with_json_label(
-    json_path: str, data_path: str, lmdb_base_path: str, train_ratio: float = 0.8
+    lmdb_size: int,
+    json_path: str,
+    data_path: str,
+    lmdb_base_path: str,
+    train_ratio: float = 0.8,
 ):
     reader = JsonLabelParser(json_path)
     parsed_label_data = reader.parse()
@@ -19,7 +23,7 @@ def run_with_json_label(
     train_lmdb_path = os.path.join(lmdb_base_path, "lmdb_train")
     val_lmdb_path = os.path.join(lmdb_base_path, "lmdb_val")
 
-    map_size = 10 * 1024 * 1024 * 1024
+    map_size = lmdb_size * 1024 * 1024 * 1024
 
     train_repo = LMDBRepository(train_lmdb_path)
     val_repo = LMDBRepository(val_lmdb_path)
@@ -42,6 +46,12 @@ def run_with_json_label(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="JSON 라벨 데이터를 LMDB로 변환하는 스크립트"
+    )
+    parser.add_argument(
+        "--lmdb_size",
+        type=int,
+        default=10,
+        help="lmdb 크기",
     )
     parser.add_argument(
         "--json_path",
@@ -71,6 +81,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_with_json_label(
+        lmdb_size=args.lmdb_size,
         json_path=args.json_path,
         data_path=args.data_path,
         lmdb_base_path=args.lmdb_base_path,
