@@ -1,50 +1,8 @@
 import os
 from pathlib import Path
 
-from app.data_reader.json_label_parser import JsonLabelParser
 from app.data_reader.txt_label_parser import TxtLabelParser
 from app.lmdb_dataset.lmdb_impl import LMDBRepository
-
-
-def run_with_json_label():
-    json_path = r"D:\ml\한국어글자체이미지\02.인쇄체_230721_add\printed_data_info.json"
-
-    reader = JsonLabelParser(json_path)
-    parsed_label_data = reader.parse()
-    formatted_data = reader.convert_to_formatted_dto(parsed_label_data)
-
-    print(f"데이터 길이: {len(parsed_label_data.images)}")
-    print(formatted_data[0].path)
-    print(formatted_data[0].label)
-
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\lmdb_train"
-    image_root_path = r"D:\ml\한국어글자체이미지\02.인쇄체_230721_add\01_printed_sentence_images\sentence"
-
-    map_size = 10 * 1024 * 1024 * 1024
-    repo = LMDBRepository(output_lmdb_path)
-    repo.create_lmdb(
-        map_size=map_size,
-        datas=formatted_data,
-        image_root=image_root_path,
-    )
-
-
-def run_with_txt_label(txt_path, output_lmdb_path, image_root_path):
-    reader = TxtLabelParser(txt_path)
-    formatted_data = reader.parse()
-
-    print(f"데이터 길이: {len(formatted_data)}")
-    print(formatted_data[0].path)
-    print(formatted_data[0].label)
-
-    map_size = 1 * 1024 * 1024 * 1024
-
-    repo = LMDBRepository(output_lmdb_path)
-    repo.create_lmdb(
-        map_size=map_size,
-        datas=formatted_data,
-        image_root=image_root_path,
-    )
 
 
 def run_with_txt_label_dir(txt_path, sub_dir):
@@ -59,7 +17,9 @@ def run_with_txt_label_dir(txt_path, sub_dir):
     return formatted_data
 
 
-def run_on_data_directory(data_dir, output_lmdb_path):
+def run_on_data_directory(
+    data_dir, lmdb_size: int, lmdb_base_path: str, train_ratio: float = 0.8
+):
     all_data = []
 
     for sub_name in os.listdir(data_dir):
@@ -80,15 +40,38 @@ def run_on_data_directory(data_dir, output_lmdb_path):
             all_data.extend(data)
 
     print(f"전체 데이터 개수: {len(all_data)}")
-    print(all_data)
-    map_size = 1 * 1024 * 1024 * 1024
-    repo = LMDBRepository(output_lmdb_path)
 
-    repo.create_lmdb(map_size=map_size, datas=all_data, image_root=data_dir)
+    total_samples = len(all_data)
+    train_count = int(total_samples * train_ratio)
+    train_data = all_data[:train_count]
+    val_data = all_data[train_count:]
+
+    train_lmdb_path = os.path.join(lmdb_base_path, "lmdb_train")
+    val_lmdb_path = os.path.join(lmdb_base_path, "lmdb_val")
+
+    map_size = lmdb_size * 1024 * 1024 * 1024
+
+    train_repo = LMDBRepository(train_lmdb_path)
+    val_repo = LMDBRepository(val_lmdb_path)
+
+    print("학습 데이터 LMDB 생성 시작...")
+    train_repo.create_lmdb(
+        map_size=map_size,
+        datas=train_data,
+        image_root=data_dir,
+    )
+
+    print("검증 데이터 LMDB 생성 시작...")
+    val_repo.create_lmdb(
+        map_size=map_size,
+        datas=val_data,
+        image_root=data_dir,
+    )
 
 
 if __name__ == "__main__":
-    data_dir = r"C:\Users\WONJANGHO\Desktop\data"
-    output_lmdb_path = r"C:\Users\WONJANGHO\Desktop\AI\micr_eval"
+    data_dir = r"C:\Users\WONJANGHO\Desktop\datas\train"
+    lmdb_size = 10
+    lmdb_base_path = r"C:\Users\WONJANGHO\Desktop\lmdb"
 
-    run_on_data_directory(data_dir, output_lmdb_path)
+    run_on_data_directory(data_dir, lmdb_size, lmdb_base_path)
