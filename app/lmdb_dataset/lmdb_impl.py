@@ -14,6 +14,8 @@ class ImageData(msgspec.Struct):
 class LMDBRepository:
     def __init__(self, lmdb_path: str):
         self.lmdb_path = lmdb_path
+        # LMDB 저장 디렉토리가 없으면 생성
+        os.makedirs(self.lmdb_path, exist_ok=True)
 
     def create_lmdb(
         self,
@@ -22,41 +24,60 @@ class LMDBRepository:
         image_root: str,
         batch_size: int = 100,
     ):
-        """LMDB 데이터셋을 생성하는 함수 (배치 처리 최적화)"""
         try:
-            env = lmdb.open(self.lmdb_path, map_size=map_size)
+            env = lmdb.open(
+                self.lmdb_path, map_size=map_size, writemap=True, sync=False
+            )
+
+            # 기존 num-samples 값 확인 (최초 실행 시 0)
             with env.begin(write=True) as txn:
-                cache = {}  # 배치 저장을 위한 캐시
-                valid_samples = 0  # 실제 저장된(유효한) 샘플 개수
+                num_samples_bytes = txn.get("num-samples".encode("utf-8"))
+                if num_samples_bytes is not None:
+                    valid_samples = int(num_samples_bytes.decode("utf-8"))
+                    print(f"기존 LMDB의 샘플 수: {valid_samples}")
+                else:
+                    valid_samples = 0
 
-                for data in tqdm(datas, desc="LMDB 데이터셋 생성중"):
-                    image_path = os.path.join(image_root, data.path)
-                    try:
-                        with open(image_path, "rb") as f:
-                            image_data = f.read()
-                    except Exception as e:
-                        print(f"이미지 읽기 에러 ({image_path}): {e}")
-                        continue
+            cache = {}
+            batch_count = 0
 
-                    valid_samples += 1
-                    image_key = "image-%09d".encode() % valid_samples
-                    label_key = "label-%09d".encode() % valid_samples
+            for data in tqdm(datas, desc="LMDB 데이터셋 생성중"):
+                image_path = os.path.join(image_root, data.path)
+                try:
+                    with open(image_path, "rb") as f:
+                        image_data = f.read()
+                except Exception as e:
+                    # 이미지 파일 읽기 실패 시 건너뜁니다.
+                    continue
 
-                    cache[image_key] = image_data
-                    cache[label_key] = data.label.encode("utf-8")
+                valid_samples += 1
+                batch_count += 1
 
-                    # 일정 개수마다 배치 저장
-                    if valid_samples % batch_size == 0:
+                image_key = "image-%09d".encode("utf-8") % valid_samples
+                label_key = "label-%09d".encode("utf-8") % valid_samples
+
+                cache[image_key] = image_data
+                cache[label_key] = data.label.encode("utf-8")
+
+                # 배치가 완료되면 별도의 트랜잭션으로 커밋
+                if batch_count == batch_size:
+                    with env.begin(write=True) as txn:
                         self._write_cache(txn, cache)
-                        cache = {}  # 캐시 초기화
+                        txn.put(
+                            "num-samples".encode("utf-8"),
+                            str(valid_samples).encode("utf-8"),
+                        )
+                    cache = {}
+                    batch_count = 0
 
-                # 남은 데이터 저장
-                if cache:
+            # 남은 데이터 커밋
+            if cache:
+                with env.begin(write=True) as txn:
                     self._write_cache(txn, cache)
-
-                txn.put(
-                    "num-samples".encode("utf-8"), str(valid_samples).encode("utf-8")
-                )
+                    txn.put(
+                        "num-samples".encode("utf-8"),
+                        str(valid_samples).encode("utf-8"),
+                    )
 
             env.close()
             print(f"✅ LMDB 데이터셋 생성 완료! (총 {valid_samples}개 샘플)")
@@ -117,7 +138,7 @@ def check_lmdb_keys(lmdb_path=r"C:\Users\WONJANGHO\Desktop\micr_train", index=1)
             print(f"{label_key} 키가 존재합니다.")
 
         # 전체 샘플 수 확인 (num-samples 키)
-        num_samples = txn.get("num-samples".encode())
+        num_samples = txn.get("num-samples".encode("utf-8"))
         if num_samples is None:
             print("num-samples 키가 존재하지 않습니다.")
         else:
@@ -161,7 +182,7 @@ def check_lmdb_keys2(lmdb_path=r"C:\Users\WONJANGHO\Desktop\micr_train", index=1
             print(f"{label_key} 키가 존재합니다.")
 
         # 전체 샘플 수 확인 (num-samples 키)
-        num_samples = txn.get("num-samples".encode())
+        num_samples = txn.get("num-samples".encode("utf-8"))
         if num_samples is None:
             print("num-samples 키가 존재하지 않습니다.")
         else:

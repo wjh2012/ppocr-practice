@@ -18,7 +18,6 @@ def create_simple_dataset(datas: list[ImageData], image_root: str, base_dir: Non
                 with open(image_path, "rb") as f:
                     image_data = f.read()
             except Exception as e:
-                print(f"이미지 읽기 에러: {e}")
                 continue
             if base_dir:
                 result_path = Path(base_dir) / data.path
