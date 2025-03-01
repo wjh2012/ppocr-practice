@@ -5,4 +5,5 @@
     <option name="pathToExecutable" value="C:\Users\WONJANGHO\AppData\Local\Programs\Python\Python38\Scripts\black.exe" />
     <option name="sdkName" value="Python 3.11 (ppocr-practice)" />
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (ppocr-practice)" project-jdk-type="Python SDK" />
 </project>
