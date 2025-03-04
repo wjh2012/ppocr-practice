@@ -68,12 +68,13 @@ def draw_results(image_path, results, output_path="output.jpg"):
 def main():
     det_model_path = "./det_models/en_PP-OCRv3_det_infer/en_PP-OCRv3_det_infer.onnx"
 
-    rec_model_path = "./rec_models/micr_v2/micr_v2.onnx"
-    txt_path = r"C:\Users\WONJANGHO\Desktop\AI\inference\rec\250226\micr_dict.txt"
+    rec_model_path = "./rec_models/enkonum250304/enkonum250304.onnx"
+    txt_path = "rec_models/dicts/korean2_dict.txt"
+
     # rec_model_path = (
     #     "./rec_models/korean_PP-OCRv3_rec_infer/korean_PP-OCRv3_rec_infer.onnx"
     # )
-    txt_path = r"C:\Users\WONJANGHO\Desktop\AI\model\inference\rec\250226\micr_dict.txt"
+    # txt_path = "./rec_models/korean_PP-OCRv3_rec_infer/korean_dict.txt"
 
     engine = RapidOCR(
         use_det=True,
@@ -84,11 +85,12 @@ def main():
         rec_keys_path=txt_path,
     )
 
-    img_path = "test_image/check1.jpg"
-    result, elapse = engine(img_path, box_thresh=0.5, text_score=0.92)
+    img_path = "../test_image/check2.jpg"
+    result, elapse = engine(img_path, box_thresh=0.1, text_score=0.1)
+    print(result)
     print(elapse)
-    # draw_results_kr(img_path, result)
-    draw_results(img_path, result)
+    draw_results_kr(img_path, result)
+    # draw_results(img_path, result)
 
 
 if __name__ == "__main__":
